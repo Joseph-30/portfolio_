@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joseph P George | Portfolio</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { background-color: #030303; color: white; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Glassmorphism Classes */
+        .glass { 
+            background: rgba(255, 255, 255, 0.03); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+        }
+        .glass-panel {
+            background: #0a0a0a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Scrollbar styling for modal */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0a0a0a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+
+    <div id="root">
+        <div class="h-screen flex items-center justify-center text-cyan-500 font-mono text-sm animate-pulse">
+            INITIALIZING SYSTEM...
+        </div>
+    </div>
+
+    <script type="text/babel">
+        // --- SAFE SETUP ---
+        const { useState, useEffect, useRef } = React;
+        const MotionLib = window.Motion || window.framerMotion;
+        if (!MotionLib) throw new Error("Animation Engine Failed");
+        const { motion, useScroll, useSpring, useTransform, AnimatePresence } = MotionLib;
+
+        // --- DATA FROM CV ---
+        const PROJECTS = [
+            { 
+                id: 1,
+                title: "ALS Acoustic Analysis", 
+                subtitle: "ICASSP 2026 Challenge | Top 7 Global",
+                desc: "Machine learning pipeline surpassing ViT baselines using 300+ engineered acoustic biomarkers.",
+                tags: ["Python", "Signal Processing", "LightGBM"], 
+                type: "software",
+                icon: "activity",
+                details: [
+                    "Developed a machine learning pipeline that achieved a 0.63 Macro F1-score, surpassing the official Visual Transformer (ViT) baseline (0.606).",
+                    "Engineered a robust set of 300+ acoustic biomarkers (Jitter, Shimmer, HNR, MFCCs) prioritizing domain knowledge over raw-data deep learning.",
+                    "Implemented LightGBM classifiers with Optuna (Bayesian Optimization) to handle severe class imbalance."
+                ]
+            },
+            { 
+                id: 2,
+                title: "GPS-Less Navigation", 
+                subtitle: "Embedded Systems & Sensor Fusion",
+                desc: "High-precision outdoor navigation using 9-DOF sensor fusion and Kalman Filter on ESP32.",
+                tags: ["C++", "ESP32", "Kalman Filter"], 
+                type: "software",
+                icon: "navigation",
+                details: [
+                    "Engineered a high-precision outdoor navigation system using 9-DOF sensor fusion (MPU6050, QMC5883L) and autocorrelation pedometry.",
+                    "Implemented advanced Kalman filtering and heading validation to correct sensor drift and mitigate magnetic interference.",
+                    "Developed a real-time web interface hosted on ESP32 featuring live path mapping and SOS system."
+                ]
+            },
+            { 
+                id: 3,
+                title: "0.18µm Ring Oscillator", 
+                subtitle: "CMOS Analog Design",
+                desc: "Design and characterization of a 5-stage CMOS ring oscillator achieving 639 MHz.",
+                tags: ["LTspice", "Analog Design", "CMOS"], 
+                type: "hardware",
+                icon: "zap",
+                details: [
+                    "Achieved stable rail-to-rail oscillation at 639 MHz with a 1.8 V supply, optimizing W/L ratios.",
+                    "Characterized performance across 1.6-2.0V supply range, demonstrating frequency scalability.",
+                    "Validated waveform integrity and harmonic content via transient and FFT analysis."
+                ]
+            },
+            { 
+                id: 4,
+                title: "Linear Power Supply", 
+                subtitle: "Power Electronics",
+                desc: "Hardware project delivering stable 0-24V at 2A with full circuit simulation.",
+                tags: ["Proteus", "Circuit Design", "Hardware"], 
+                type: "hardware",
+                icon: "battery-charging",
+                details: [
+                    "Designed and built a variable linear power supply capable of delivering a stable 0-24V output at 2A.",
+                    "Utilized LTspice for circuit simulation to ensure stability and performance before physical assembly."
+                ]
+            },
+            { 
+                id: 5,
+                title: "5-Transistor OTA", 
+                subtitle: "Analog Circuit Design",
+                desc: "Operational Transconductance Amplifier design with active load.",
+                tags: ["LTspice", "Analog", "Theory"], 
+                type: "hardware",
+                icon: "cpu",
+                details: [
+                    "Designed a 5-Transistor OTA with an active load using LTspice.",
+                    "Achieved a DC open-loop gain of roughly 47 dB under a 5 V supply."
+                ]
+            }
+        ];
+
+        // --- COMPONENTS ---
+
+        const Icon = ({ name, className }) => <i data-lucide={name} className={className}></i>;
+
+        // The Pop-up Modal
+        const ProjectModal = ({ project, onClose }) => {
+            if (!project) return null;
+            
+            // Theme colors based on project type
+            const isHardware = project.type === "hardware";
+            const accentColor = isHardware ? "text-cyan-400" : "text-violet-400";
+            const borderColor = isHardware ? "border-cyan-500/30" : "border-violet-500/30";
+            const bgGradient = isHardware ? "from-cyan-500/10" : "from-violet-500/10";
+
+            return (
+                <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                    onClick={onClose}
+                >
+                    <motion.div 
+                        initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+                        className={`w-full max-w-2xl glass-panel rounded-2xl overflow-hidden relative max-h-[80vh] flex flex-col ${borderColor}`}
+                        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+                    >
+                        {/* Header */}
+                        <div className={`p-8 bg-gradient-to-b ${bgGradient} to-transparent border-b border-white/5`}>
+                            <div className="flex justify-between items-start mb-4">
+                                <div className={`p-3 rounded-xl bg-white/5 ${accentColor}`}>
+                                    <Icon name={project.icon} className="w-8 h-8" />
+                                </div>
+                                <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                    <Icon name="x" className="w-6 h-6 text-gray-400" />
+                                </button>
+                            </div>
+                            <h2 className="text-3xl font-bold mb-2">{project.title}</h2>
+                            <p className={`font-mono text-sm uppercase tracking-widest ${accentColor}`}>{project.subtitle}</p>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-8 overflow-y-auto custom-scrollbar">
+                            <h3 className="text-sm font-mono text-gray-500 uppercase tracking-widest mb-6">Technical Specifications</h3>
+                            <ul className="space-y-4">
+                                {project.details.map((point, i) => (
+                                    <li key={i} className="flex gap-4 text-gray-300 leading-relaxed">
+                                        <span className={`mt-2 w-1.5 h-1.5 rounded-full flex-shrink-0 ${isHardware ? "bg-cyan-500" : "bg-violet-500"}`} />
+                                        <span>{point}</span>
+                                    </li>
+                                ))}
+                            </ul>
+
+                            <div className="mt-8 pt-8 border-t border-white/5 flex flex-wrap gap-2">
+                                {project.tags.map(tag => (
+                                    <span key={tag} className="px-3 py-1 bg-white/5 border border-white/10 rounded text-[10px] font-mono text-gray-400">
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            );
+        };
+
+        const MagneticButton = ({ children, primary }) => (
+            <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`px-8 py-4 rounded-xl font-bold transition-all ${
+                    primary ? "bg-white text-black hover:bg-cyan-400" : "border border-white/10 hover:bg-white/5"
+                }`}
+            >
+                {children}
+            </motion.button>
+        );
+
+        // --- MAIN APP ---
+        function App() {
+            const [selectedProject, setSelectedProject] = useState(null);
+            const { scrollYProgress } = useScroll();
+            const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
+
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
+
+            return (
+                <div className="bg-[#030303] min-h-screen text-white selection:bg-cyan-500/30 selection:text-cyan-200">
+                    
+                    {/* Scroll Progress */}
+                    <motion.div className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-violet-500 origin-left z-50" style={{ scaleX }} />
+
+                    {/* Navbar */}
+                    <nav className="fixed top-0 w-full z-40 p-6">
+                        <div className="max-w-7xl mx-auto flex justify-between items-center backdrop-blur-md bg-black/50 border border-white/5 p-4 rounded-2xl">
+                            <span className="font-bold text-xl tracking-tighter">JPG<span className="text-cyan-500">.</span></span>
+                            <div className="hidden md:flex gap-6 text-[10px] font-mono uppercase tracking-widest text-gray-400">
+                                <a href="#projects" className="hover:text-cyan-400 transition-colors">Works</a>
+                                <a href="#experience" className="hover:text-cyan-400 transition-colors">Experience</a>
+                                <a href="#contact" className="hover:text-cyan-400 transition-colors">Contact</a>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <main className="relative z-10 px-6">
+                        
+                        {/* HERO */}
+                        <section className="h-screen flex items-center justify-center relative">
+                            <div className="text-center max-w-5xl z-10">
+                                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
+                                    <span className="inline-block px-4 py-1 rounded-full border border-cyan-500/20 bg-cyan-500/5 text-[10px] font-mono text-cyan-400 mb-8 uppercase tracking-[0.3em]">
+                                        Signal Processing & Analog Design
+                                    </span>
+                                </motion.div>
+                                <h1 className="text-6xl md:text-9xl font-bold tracking-tighter mb-8 bg-gradient-to-b from-white to-gray-600 bg-clip-text text-transparent">
+                                    Joseph P George
+                                </h1>
+                                <p className="text-lg md:text-2xl text-gray-400 max-w-2xl mx-auto leading-relaxed mb-12">
+                                    Bridging the gap between <span className="text-cyan-400 italic">silicon</span> and <span className="text-violet-400 italic">software</span>.
+                                </p>
+                                <div className="flex flex-wrap justify-center gap-6">
+                                    <MagneticButton primary>Explore Research</MagneticButton>
+                                    <MagneticButton>Download Dossier</MagneticButton>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* PROJECTS GRID */}
+                        <section id="projects" className="py-24 max-w-7xl mx-auto">
+                            <div className="mb-16">
+                                <h2 className="text-5xl font-bold mb-4">Laboratory Records</h2>
+                                <p className="text-cyan-500 font-mono text-xs uppercase tracking-widest">Click cards to view full schematics</p>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {PROJECTS.map((project) => (
+                                    <motion.div 
+                                        key={project.id}
+                                        layoutId={`card-${project.id}`}
+                                        onClick={() => setSelectedProject(project)}
+                                        whileHover={{ y: -8 }}
+                                        className={`glass p-8 rounded-2xl cursor-pointer group border-transparent hover:border-white/10 relative overflow-hidden transition-all duration-300`}
+                                    >
+                                        {/* Hover Gradient Background */}
+                                        <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-gradient-to-br ${project.type === 'hardware' ? 'from-cyan-500' : 'from-violet-500'} to-transparent`} />
+                                        
+                                        <div className="relative z-10">
+                                            <div className={`mb-6 p-3 rounded-lg w-fit ${project.type === 'hardware' ? 'bg-cyan-500/10 text-cyan-400' : 'bg-violet-500/10 text-violet-400'}`}>
+                                                <Icon name={project.icon} className="w-6 h-6" />
+                                            </div>
+                                            
+                                            <h3 className="text-2xl font-bold mb-3 group-hover:text-white transition-colors">{project.title}</h3>
+                                            <p className="text-gray-400 text-sm leading-relaxed mb-6 line-clamp-3">{project.desc}</p>
+                                            
+                                            <div className="flex flex-wrap gap-2 mt-auto">
+                                                {project.tags.slice(0, 2).map(tag => (
+                                                    <span key={tag} className="text-[10px] font-mono border border-white/10 px-2 py-1 rounded text-gray-500 group-hover:text-gray-300 transition-colors">
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                                {project.tags.length > 2 && <span className="text-[10px] font-mono border border-white/10 px-2 py-1 rounded text-gray-500">+{project.tags.length - 2}</span>}
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* EXPERIENCE SECTION (Restored from CV) */}
+                        <section id="experience" className="py-24 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16">
+                            <div>
+                                <h2 className="text-5xl font-bold mb-12">Transmission Log</h2>
+                                <div className="space-y-12">
+                                    {[
+                                        { date: "AUG '25", role: "IISc Bangalore", desc: "Selected for EE Summer School & ISWDP Cohort 6." },
+                                        { date: "JUN '25", role: "Gyaan Innovation Lab", desc: "IoT Intern. Built PCB units & PHP interfaces." },
+                                        { date: "2024-25", role: "IEEE SPS", desc: "Secretary. Managed Student Branch operations." }
+                                    ].map((item, i) => (
+                                        <div key={i} className="relative pl-12 border-l border-white/10 group">
+                                            <div className="absolute -left-[5px] top-0 w-2 h-2 bg-gray-600 rounded-full group-hover:bg-cyan-400 group-hover:shadow-[0_0_10px_cyan] transition-all"></div>
+                                            <span className="text-cyan-500 font-mono text-[10px] block mb-2">{item.date}</span>
+                                            <h4 className="text-xl font-bold mb-1">{item.role}</h4>
+                                            <p className="text-gray-500 text-sm">{item.desc}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {/* Recognition Card */}
+                            <div className="glass p-10 rounded-3xl border-cyan-500/10 bg-gradient-to-b from-cyan-900/5 to-transparent">
+                                <h4 className="text-xl font-bold mb-8 flex items-center gap-3">
+                                    <Icon name="award" className="text-cyan-400" /> Recognition
+                                </h4>
+                                <div className="space-y-6">
+                                    <div className="flex justify-between border-b border-white/5 pb-4">
+                                        <span className="text-gray-400">ICASSP 2026 Rank</span>
+                                        <span className="text-2xl font-bold text-cyan-400">#7 Global</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-white/5 pb-4">
+                                        <span className="text-gray-400">B.Tech CGPA</span>
+                                        <span className="text-2xl font-bold">9.18</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-white/5 pb-4">
+                                        <span className="text-gray-400">12th Grade</span>
+                                        <span className="text-2xl font-bold">97%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* CONTACT */}
+                        <section id="contact" className="py-24 max-w-3xl mx-auto text-center">
+                            <h2 className="text-6xl font-bold mb-8">Initiate Connection</h2>
+                            <p className="text-gray-500 mb-12">Available for research fellowships and core engineering roles.</p>
+                            <a href="mailto:josephgeorge28360@gmail.com" className="inline-block w-full max-w-md bg-white text-black py-4 rounded-xl font-bold hover:bg-cyan-400 transition-colors">
+                                josephgeorge28360@gmail.com
+                            </a>
+                        </section>
+
+                    </main>
+
+                    <footer className="py-10 text-center text-[10px] font-mono text-gray-600 border-t border-white/5">
+                        LOC: 10.5276° N, 76.2144° E • SYSTEM ONLINE
+                    </footer>
+
+                    {/* MODAL LAYER */}
+                    <AnimatePresence>
+                        {selectedProject && (
+                            <ProjectModal project={selectedProject} onClose={() => setSelectedProject(null)} />
+                        )}
+                    </AnimatePresence>
+
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
